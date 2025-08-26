@@ -1,0 +1,12 @@
+# generalized; detailed entries will be added in Task 02
+__pycache__/
+*.pyc
+.env
+.venv/
+node_modules/
+.dist/
+build/
+dist/
+.DS_Store
+.idea/
+.vscode/
