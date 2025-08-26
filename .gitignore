@@ -1,12 +1,46 @@
-# generalized; detailed entries will be added in Task 02
-__pycache__/
-*.pyc
-.env
-.venv/
-node_modules/
-.dist/
-build/
-dist/
+# OS
 .DS_Store
-.idea/
+Thumbs.db
+
+# Editors/IDE
 .vscode/
+.idea/
+*.iml
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.python-version
+.venv/
+venv/
+dist/
+build/
+pip-wheel-metadata/
+*.egg-info/
+
+# Node/JS
+node_modules/
+.pnpm-store/
+.npm/
+.yarn/
+.next/
+coverage/
+*.log
+*.tsbuildinfo
+
+# Rust/Go/other (future-proof)
+target/
+
+# Env & secrets
+.env
+.env.*
+.secrets/
+.secrets/*
+!.secrets/.gitkeep
+
+# Misc
+.cache/
+.tmp/
+.dist/
