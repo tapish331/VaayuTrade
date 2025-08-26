@@ -1,0 +1,410 @@
+# Discovery Questionnaire — **VaayuTrade** (ML Zerodha NSE Intraday Bot)
+---
+
+## 0) Project Snapshot
+
+**Working name & one-liner**
+**VaayuTrade** — A disciplined, ML-driven intraday equities bot for Zerodha that trades your plan, not your emotions.
+
+**Elevator pitch (problem → solution → outcome)**
+Manual intraday trading is error-prone: late entries, missed exits, emotional decisions, and rate-limit/reject surprises. VaayuTrade ingests live ticks, computes online features, infers probabilistic edges, and executes with linked exits and strict risk caps. You get consistent, auditable, end-to-end automation with dashboards, alerts, and zero positions by close.
+
+**Primary user personas (who/why now)**
+
+* **Active retail trader (single account):** Wants consistent execution and hard risk limits.
+* **Quant tinkerer:** Wants reproducible research/backtests that match live results.
+* **Ops-minded builder:** Wants reliable infra, logs, and “flatten-now” kill switches.
+
+**Success metrics/KPIs for v1**
+
+* **Live trading:** p95 tick→order latency < **200 ms**; order reject rate < **1%**; SL/TP linkage correctness **100%**.
+* **Risk:** Daily loss cap breach = **0**; square-off with zero open positions **100%**.
+* **Strategy health:** Backtest→live slippage delta < **25%** of spread; net expectancy ≥ **0.05R/trade** over 1 month.
+* **Ops:** MTBF > **5 trading days**; mean recovery from WS drop < **20 s**.
+
+**Target launch date & constraints**
+
+* Target **Oct 31, 2025**; budget: single dev + modest cloud + Zerodha/Kite fees.
+* Constraints: India market hours/holidays; Zerodha API rate limits; no broker paper-trade; single-user scope.
+
+---
+
+## 1) Scope & Must-Haves
+
+**Top 5 jobs-to-be-done (Given/When/Then)**
+
+1. **Entry execution** — *Given* a buy signal with size, *when* spread/vol are acceptable, *then* place sliced limit entries and confirm fills.
+2. **Linked exits** — *Given* an entry fill, *when* price reaches target or stop, *then* close via TP or SL-L and cancel the opposite.
+3. **Risk guardrails** — *Given* PnL hits daily loss or time window closes, *then* halt entries and flatten all.
+4. **Universe control** — *Given* a symbol list and ban lists, *then* subscribe, trade only allowed symbols, and auto-refresh instruments daily.
+5. **Observability** — *Given* live trading, *then* stream PnL, exposure, latencies, rejects, drift, and send alerts.
+
+**MVP (must) vs Nice-to-have (later)**
+
+* **Must:** Zerodha adapter (REST/WS), online features, ML inference service, order manager with OCO logic, risk engine, backtester, Postgres+Redis, dashboard, Slack/Telegram alerts, square-off logic, daily report.
+* **Later:** Multi-model ensembles, transformer features, options support, cloud failover, mobile app, AutoML retraining, broker abstraction layer.
+
+**Platforms**
+
+* **Web dashboard** (Next.js), **CLI/daemon** (Linux), **API** (local REST). No mobile in v1.
+
+**Regions/markets at launch**
+
+* **India, NSE equities (cash), MIS intraday only**.
+
+---
+
+## 2) Users, Access & Permissions
+
+**Auth**
+
+* Local **email+password** (argon2id), optional **Google SSO** for dashboard.
+* CLI auth via PAT (scoped token). Magic links optional later.
+
+**Roles & RBAC**
+
+* **Owner** (full control), **Auditor** (read-only: logs, reports).
+* Capabilities: trade on/off, config edit, kill-switch, impersonate read.
+
+**Multi-tenancy**
+
+* **Single-tenant** (one user, one account) with the option to add Org later.
+
+**Session policy, MFA, recovery**
+
+* Session TTL 12h, idle timeout 1h, JWT w/ rotating refresh, optional TOTP MFA.
+* Password rules: 12+ chars, zxcvbn ≥ 3; recovery via email link.
+
+---
+
+## 3) Domain/Data Model
+
+**Core entities (→ key fields → relationships)**
+
+* **Account**: id, broker, api\_key\_ref, product=MIS, timezone → 1..\* **Session**
+* **Instrument**: token, symbol, exchange, tick\_size, lot\_size, is\_tradable → *..* **Universe**
+* **Universe**: id, name, symbols\[], ban\_lists\[] → feeds **Subscription**
+* **Signal**: id, ts, symbol, score, horizon, side, conf, features\_ref → 1..\* **OrderIntent**
+* **Order**: id, client\_id, symbol, side, qty, type, limit\_price, trigger, status, parent\_id → *..* **Execution**
+* **Execution (Fill)**: id, order\_id, qty, price, ts, liquidity\_flag
+* **Position**: symbol, net\_qty, avg\_price, mtm, last\_updated
+* **RiskLimit**: max\_daily\_loss, per\_trade\_risk, max\_positions, max\_spread\_bps
+* **PnLMinute**: ts, realized, unrealized, fees, turnover
+* **ModelArtifact**: id, version, path, schema\_hash, metrics, calib
+* **FeatureSnapshot**: ts, symbol, f1..fn (rolling windows)
+* **Candle**: symbol, ts, ohlcv\_1m, vwap
+* **TickSnapshot**: ts, symbol, bid/ask\[1..5], last, volume
+* **AlertEvent**: ts, type, severity, payload
+* **BacktestRun**: id, config\_ref, metrics, trades\[], seed
+* **Config**: versioned YAML blob (see §8 repo).
+
+**Cardinality highlights**
+
+* Account 1..\* Sessions; Signal 1..\* Orders; Order 0..\* Executions; Position 1:1 per symbol/day.
+
+**Data volume expectations** (NIFTY100 universe)
+
+* Ticks: 50–200 ticks/symbol/day → **\~10–20M ticks/day** (if fully captured).
+* 1-min bars: 375/min/day × 100 symbols → **37,500 rows/day**.
+* 12-month storage: ticks optional (snapshots), bars+features+orders ≈ **50–120 GB**.
+
+**Lifecycle (retention/archival/deletion)**
+
+* **Orders/Executions/Positions**: retain **7 years** (financial audit).
+* **Ticks/Features**: raw ticks **30–90 days**; features+buckets **12 months**; archive to S3 Glacier thereafter.
+* **PnL/Reports/Alerts**: **3 years**.
+* **Purge** on request (single-user) with tombstones in audit log.
+
+**Import/export & seeds**
+
+* Import: CSV symbol lists, prior OHLCV, holiday calendars.
+* Export: CSV/Parquet reports, JSON config, complete backtest bundles.
+
+---
+
+## 4) Integrations
+
+**Core**
+
+* **Zerodha Kite Connect**: REST (orders/positions/funds/instruments), WS (ticks, order postbacks). Auth via API key+request token → access token.
+* **Holiday/Calendar**: NSE trading calendar (local JSON).
+* **Messaging**: Slack/Telegram for alerts.
+* **Storage**: S3/GCS for archives and models.
+* **Analytics/obs**: Prometheus, Grafana, Loki; optional Sentry.
+* **Search**: Postgres FTS for logs.
+
+**Events & endpoints**
+
+* Outbound webhooks (optional): `order.filled`, `risk.halt`, `flatten.done`, `squareoff.warn` (JSON, HMAC-SHA256). Retries: exponential backoff, max 6, DLQ.
+* Inbound hooks (optional): `/api/hook/flatten`, `/api/hook/config.reload` (HMAC).
+* Rate limits honored at adapter: token bucket (10/s orders, budgeted queue).
+
+---
+
+## 5) AI/LLM Requirements (for coding, ops, and UX)
+
+**Use-cases**
+
+* **Code generation & refactors** (repo-aware assistant).
+* **Docs & runbooks drafting** (RAG over repo & ADRs).
+* **Ops copilots**: NL→command for read-only queries (“what’s today’s realized PnL?”).
+* **Log triage**: classify error bursts, propose fixes.
+* *(Not for trading signals)* — predictive signals are classic ML (LightGBM/etc.), not LLM.
+
+**Models/providers & fallbacks**
+
+* Primary: **OpenAI code-capable model** (latest),
+* Fallbacks: **Azure OpenAI** mirror; **Anthropic** for reasoning; **local LLM** for offline doc Q\&A. Provide provider abstraction + per-route quotas.
+
+**Prompting**
+
+* System personas: **Repo-Copilot** (code), **Ops-Analyst** (logs), **Doc-Writer** (docs).
+* Constraints: deterministic seeds where supported, temperature ≤ 0.2 for code.
+* Few-shot: unit-test skeletons; commit message styles; error→remediation pairs.
+
+**RAG**
+
+* Sources: `README`, `/docs`, ADRs, `/infra`, `/api`, schema.sql, protobufs.
+* Chunking: **1,000–1,500 tokens**, 10–15% overlap;
+* Embeddings: provider default; Vector DB: **Lite** (pgvector) in Postgres.
+* Filters: path, commit hash, tag (release).
+
+**Quality**
+
+* Eval set: 50–100 repo tasks (diff-based scoring + tests pass).
+* Hallucination policy: prefer refusal + cite repo files; never fabricate API fields.
+* Toxicity/profanity filter: on by default.
+
+**Latency & cost ceilings**
+
+* p95 LLM route < **8 s**; monthly cost ceiling configurable (budget alerts at 70/90/100%).
+
+**User data privacy**
+
+* PII redaction in prompts; opt-out toggle; never send secrets/logs with tokens.
+
+**HITL**
+
+* All LLM code changes require PR review; auto-generated diffs flagged with label `ai-generated`. Feedback loop into eval set.
+
+**Safety/compliance**
+
+* Audit logs of prompts/completions (hash docs), retention 30 days; policy links in app; block running shell commands from LLM.
+
+---
+
+## 6) UX/UI & Content
+
+* **Design system**: Tailwind + shadcn/ui; icon: lucide.
+* **Pages**: Overview (PnL, exposure), Orders/Positions, Signals, Risk & Limits, Logs, Config, Backtests.
+* **Responsive** with **dark mode** default.
+* **Accessibility**: WCAG 2.1 AA — focus states, keyboard nav, alt texts, color contrast ≥ 4.5:1.
+* **Localization**: en-IN in v1; hooks for hi-IN later (dates in IST).
+
+---
+
+## 7) Non-Functional Requirements
+
+* **Performance**:
+
+  * Tick→feature pipeline < **20 ms**, feature→signal < **10 ms**, signal→order submit < **50 ms** (local).
+  * Dashboard TTFB < **300 ms**, LCP < **2.5 s**.
+* **Availability**: Trading daemon SLO **99.5%** during market hours; error budget policy.
+* **Scalability**: 3k instruments subscribed cap; target 100–500 symbols practical.
+* **Privacy/compliance**: Single-user; encrypt at rest (Postgres TDE/S3 SSE-KMS) & in transit (TLS).
+* **Auditability**: Immutable audit log for config, orders, risk toggles.
+
+---
+
+## 8) Architecture & Tech Choices
+
+**Repo layout (monorepo)**
+
+```
+VaayuTrade/
+  apps/
+    traderd/           # Python daemon (asyncio)
+    dashboard/         # Next.js (TS)
+    api/               # FastAPI (REST)
+  packages/
+    broker-kite/       # Zerodha adapter
+    strategy/          # features + models (ONNXRuntime)
+    backtester/        # event-driven sim
+    common/            # schemas, utils, telemetry
+  infra/
+    terraform/         # cloud modules
+    github/            # actions, CODEOWNERS
+  docs/                # ADRs, runbooks
+```
+
+**Languages & frameworks**
+
+* **Python 3.11+** (traderd, strategy, backtester, FastAPI), **ONNXRuntime**, **Polars**.
+* **TypeScript/Next.js** (dashboard).
+* IaC: **Terraform**.
+
+**API style**
+
+* REST (idempotent endpoints, `X-Idempotency-Key`), pagination (cursor), versioned `/v1`.
+
+**State & cache**
+
+* **Redis** for hot state (positions, throttles, queues); **CDN** for dashboard assets.
+
+**DBs**
+
+* **Postgres 16** (primary), **pgvector** for RAG; migrations via **Alembic**.
+
+**Queues/events**
+
+* **Redis streams** for internal events; outbox pattern from Postgres → webhook.
+
+**File storage**
+
+* **S3** for models, archives, backtests; 100 MB file upload limit; ClamAV scan.
+
+**Search**
+
+* Postgres FTS for logs & docs; upgrade path to Meilisearch later.
+
+---
+
+## 9) DevOps, Infra & Environments
+
+* **Cloud**: AWS **ap-south-1** (Mumbai) for API/dashboard/logs;
+  **Trading daemon runs on a dedicated local Linux box** (low latency, UPS, dual ISP).
+* **Runtime**: Docker containers; systemd for local daemon;
+* **Envs**: `dev` / `stage` / `prod` with config parity; secrets via AWS Secrets Manager + local `.secrets/`.
+* **Network**: TLS (Let’s Encrypt), CloudFront CDN/WAF, IP allowlist for API.
+* **Backups**: Postgres WAL + nightly full (35-day retention), S3 versioning; RTO 1h, RPO 15m.
+
+---
+
+## 10) GitHub Repository & Workflow
+
+* **Org/repo**: `tapish331/VaayuTrade` (private during build; MIT at release).
+* Default branch `main`; branch protection (required checks, signed commits optional).
+* **Branching**: trunk-based; feature branches → PR.
+* **PR rules**: 1 reviewer min (self allowed for single user); CI green; coverage ≥ 80%.
+* **Conventional Commits + SemVer**; CHANGELOG auto via release-please.
+* Security: Dependabot (daily), CodeQL, secret scanning, required status checks.
+
+---
+
+## 11) CI/CD & Quality Gates
+
+* **CI (GitHub Actions)**: matrix (py 3.11, node LTS).
+  Steps: lint (ruff/eslint), typecheck (mypy/tsc), unit tests (pytest/jest), integration tests (spinning mock Kite), e2e sim, security scan (bandit, trivy), license audit, coverage upload.
+* **Preview envs** for dashboard on PR (Vercel or Docker ephemeral).
+* **CD**:
+
+  * Dashboard/API: auto deploy on tag;
+  * Trader daemon: **manual** promote (signed image), with canary “dry-run” then micro-capital.
+  * Rollback: `deploy:rollback <tag>` + feature flag disable.
+
+---
+
+## 12) Observability
+
+* **Logging**: JSON structured, levels, correlation ids, **no PII**; retention 30–90 days.
+* **Tracing**: OpenTelemetry (ingress→order path).
+* **Metrics**: PnL, exposure, tick lag, latencies, order budgets, error classes, drift PSI.
+* **Dashboards**: Grafana boards for trading KPIs + ops.
+* **Alerts**: Slack/Telegram for `risk.halt`, `ws.stale>1.5s`, `reject.rate>1%`, `squareoff.warn@15:10`, `position.open@15:18`.
+
+---
+
+## 13) Payments/Monetization
+
+* **Not applicable for v1** (single user). If opensourced SaaS later: subscription with Stripe, monthly seats, feature-flag entitlements.
+
+---
+
+## 14) Notifications & Comms
+
+* Channels: **Slack** (primary), **Telegram** (backup), in-app toasts.
+* Templates: order filled, TP/SL hit, halt, resume, daily PnL.
+* Retry: 3 attempts with backoff; digest email at EOD; quiet hours off during market.
+
+---
+
+## 15) Analytics & Growth
+
+* Product analytics (dashboard only): PostHog self-host (event: view, filter, alert ack).
+* A/B testing: not needed v1.
+* Data lake: S3 + Glue catalog (optional) for research; ETL via simple Airflow or cron.
+
+---
+
+## 16) Admin & Backoffice
+
+* Internal admin page (Owner only): user search, impersonation (read-only), feature flags, audit log browser, config editor with diff & versioning.
+* Support: GitHub Issues; SLA best-effort.
+
+---
+
+## 17) Legal & Policies
+
+* **DISCLAIMER:** Educational tooling; not investment advice; you are responsible for trades.
+* Policies: Terms, Privacy, Cookie (if hosted dashboard); open-source licenses listed in `/THIRD_PARTY_NOTICES`.
+* Secrets handling policy; log retention & deletion on request.
+
+---
+
+## 18) Risks, Assumptions, Out-of-Scope
+
+**Top risks + mitigations**
+
+1. **Broker API changes / rate limits** → adapter versioning, feature flags, backoff, synthetic queue budgets.
+2. **Data quality / stale feed** → staleness guards, auto-halt, reconnect with jitter.
+3. **Latency spikes / rejects** → proactive slicing, price-band checks, limit-as-market emergency flattener.
+4. **Model drift** → PSI monitors, scheduled reevaluation, caps on position size.
+5. **Operational failure near close** → 15:10 no-new-entries; 15:18 force-flat; UPS/dual ISP.
+
+**Assumptions**
+
+* Single Zerodha account, live credentials, and paid Kite plan; trading only 09:15–15:20 IST.
+* MIS intraday (no carry-forward); equities only.
+
+**Out-of-scope v1**
+
+* Options/futures, multi-broker, prop/multi-tenant, HFT colocation, mobile apps.
+
+---
+
+## 19) Definition of “Complete End-to-End”
+
+**Acceptance criteria checklist (State 6)**
+
+* [ ] Repo bootstrapped (monorepo), CI green, CODEOWNERS, security scans on.
+* [ ] Zerodha adapter passes integration tests against mock + live smoke (funds/instruments).
+* [ ] Trader daemon ingests WS, computes features, produces signals from loaded ONNX model.
+* [ ] Order manager: entry + OCO exits (TP + SL-L) verified in a controlled symbol with micro capital.
+* [ ] Risk engine: daily cap, per-trade cap, spread/time guards, halt & resume verified.
+* [ ] Force-flat workflow at **15:18 IST** closes all positions; post-checks confirm zero exposure.
+* [ ] Backtester parity: same feature code; slippage model; walk-forward report generated.
+* [ ] Dashboard shows PnL, positions, orders, rejects, latencies; alerts working.
+* [ ] Logs, metrics, traces visible; alert thresholds tunable; kill-switch CLI works.
+* [ ] EOD report generated and archived; config versioning & rollback works.
+
+**Manual UAT scenarios**
+
+1. **Happy path trade**: Signal→entry limit filled→TP hit→SL canceled→PnL logged.
+2. **Adverse path**: Entry filled→SL-L triggers→position flat→cooldown enforced.
+3. **Reject handling**: Price band reject→auto adjust or abort, no duplicate orders.
+4. **WS drop mid-day**: Auto-reconnect; entries halted during staleness; resume on healthy feed.
+5. **Daily loss cap**: Trigger halt; no new orders; manual flatten blocked if already flat.
+6. **Square-off window**: After 15:10 no new entries; at 15:18 emergency flatten; 15:20 flat verified.
+7. **Config change live**: Increase per-trade risk; hot-reload; audit log updated.
+8. **Kill-switch**: Immediate flatten and halt from CLI/API; audit logged.
+9. **Backtest reproducibility**: Given seed and tag, rerun produces ±1 trade deviation max.
+10. **Disaster**: Local daemon crash; systemd auto-restart; state rehydration; no duplicate orders.
+
+---
+
+### Appendix: Concrete build defaults (for Codex)
+
+* **Strategy/ML**: LightGBM classifier (10-min forward return > 0), isotonic calibration, ONNX export; features: returns ladder, ATR, RSI, depth imbalance, spread, time-of-day; entry threshold `p>0.58`, RR target 1.2, SL 1.0, trailing after 0.8R.
+* **Order semantics**: Entry **LIMIT** with 1–2 tick improve; **SL-L** with 2–3 tick protection; sliced legs max 1,800 qty; ≤25 order mods.
+* **Risk**: Max daily loss **1.5%** NAV; per-trade risk **0.35%**; max positions 10; max spread 12 bps; no entries 09:15–09:17 & after 15:10; force-flat 15:18 IST.
+* **Perf targets**: Tick→order p95 **<200 ms**; reject rate **<1%**; uptime **99.5%** market hours.

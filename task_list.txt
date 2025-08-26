@@ -1,0 +1,253 @@
+---
+
+### Task 01 — Initialize monorepo & licensing
+
+* Deliver: `VaayuTrade/` layout (apps/, packages/, infra/, docs/), `LICENSE` (MIT), `README.md`.
+* DoD: repo builds locally; `pre-commit` hooks installed.
+
+### Task 02 — Baseline tooling & conventions
+
+* Deliver: `.editorconfig`, `.gitignore`, Conventional Commits (commitlint + config), PR template, issue templates.
+* DoD: sample commit passes commitlint; Husky hooks active.
+
+### Task 03 — Python/Node toolchains
+
+* Deliver: Python 3.11 with `poetry` (lock), Node LTS with `pnpm` (lock), `ruff`, `black`, `mypy`, `eslint`, `prettier`.
+* DoD: `make bootstrap` installs everything cleanly.
+
+### Task 04 — GitHub Actions: CI skeleton
+
+* Deliver: matrix (py3.11, node LTS) job running lint/typecheck/unit tests with cache.
+* DoD: CI green on scaffold branch.
+
+### Task 05 — Security & governance
+
+* Deliver: Dependabot, CodeQL, secret scanning, branch protection rules, `CODEOWNERS`.
+* DoD: security scans run on PR; protected `main`.
+
+### Task 06 — Infra skeleton (Terraform)
+
+* Deliver: `infra/terraform` modules (AWS ap-south-1), VPC stubs, S3 buckets for `models/` and `archives/`, parameterized variables.
+* DoD: `terraform validate` passes; no apply yet.
+
+### Task 07 — Common schemas & error types
+
+* Deliver: `packages/common/` with pydantic models for domain entities, error enums, result wrappers.
+* DoD: unit tests validate JSON (de)serialization.
+
+### Task 08 — Database schema & migrations
+
+* Deliver: Postgres DDL + Alembic migrations for Account, Instrument, Orders, Executions, Positions, Signals, PnLMinute, ModelArtifact, Config, Alerts, BacktestRun, Audit.
+* DoD: migration up/down works; FK/indexes present.
+
+### Task 09 — DB access layer
+
+* Deliver: async SQLAlchemy session, repository pattern, health checks.
+* DoD: CRUD unit tests with transactional test DB.
+
+### Task 10 — Redis & caching utilities
+
+* Deliver: connection pool, key namespaces, expiring caches, rate-limit bucket helpers.
+* DoD: integration tests with ephemeral Redis.
+
+### Task 11 — FastAPI service bootstrap (`apps/api`)
+
+* Deliver: `/v1/health`, `/v1/version`; error mappers; CORS; request/response logging.
+* DoD: OpenAPI served; tests pass.
+
+### Task 12 — Auth module (Owner + Auditor)
+
+* Deliver: email+password (argon2id), JWT access/refresh, TOTP MFA optional, Google OAuth; RBAC decorators.
+* DoD: auth flows tested; role gates enforced.
+
+### Task 13 — Config management
+
+* Deliver: versioned `config.yaml` loader, schema validation, hot-reload endpoint, audit log on change.
+* DoD: invalid config rejected; change recorded.
+
+### Task 14 — Holiday & session guards
+
+* Deliver: NSE holiday JSON, time-window policy (no entries 09:15–09:17 & after 15:10; force-flat 15:18 IST).
+* DoD: policy unit tests for edge times.
+
+### Task 15 — Broker adapter interface
+
+* Deliver: clean interface (`place`, `modify`, `cancel`, `positions`, `funds`, `instruments`), idempotency keys, retry/backoff.
+* DoD: 100% mocked tests; stable public API.
+
+### Task 16 — Mock Kite (REST/WS) test server
+
+* Deliver: deterministic REST/WS simulator (ticks, postbacks, rejects, rate-limit).
+* DoD: scenario tests (fill, partial, reject).
+
+### Task 17 — Zerodha adapter (REST)
+
+* Deliver: concrete Kite REST client (orders/positions/funds/instruments) + request signing, 429 budgeter.
+* DoD: integration tests against mock server.
+
+### Task 18 — Zerodha adapter (WebSocket)
+
+* Deliver: tick stream client (full mode), resubscribe on reconnect, sequence checks, staleness detection.
+* DoD: WS drop/reconnect tests pass.
+
+### Task 19 — Strategy package bootstrap
+
+* Deliver: feature registry, rolling windows, technicals (returns ladder, ATR, RSI), depth imbalance, spread.
+* DoD: parity tests vs reference vectors.
+
+### Task 20 — ONNX inference harness
+
+* Deliver: ONNXRuntime wrapper, model versioning, calibration (isotonic), input schema hash checks.
+* DoD: sample artifact loads; score shape validated.
+
+### Task 21 — Feature parity (offline=online)
+
+* Deliver: shared transforms used by both backtester and live; single source of truth.
+* DoD: golden tests ensure byte-identical features.
+
+### Task 22 — Signal policy & sizing
+
+* Deliver: thresholds, Kelly-clip, spread/vol filters, cooldowns; size calc from risk config.
+* DoD: unit tests for edge cases.
+
+### Task 23 — Order manager skeleton
+
+* Deliver: state machine (FLAT→PENDING\_ENTRY→ENTERED→PENDING\_EXIT→FLAT), OCO book (TP + SL-L), partial fill handling.
+* DoD: simulator tests verify OCO invariants.
+
+### Task 24 — Risk engine
+
+* Deliver: daily max loss, per-trade risk, exposure caps, symbol weights, stale-feed halt, circuit/ASM/GSM bans.
+* DoD: halts enforce; resume requires ack.
+
+### Task 25 — PnL & positions accounting
+
+* Deliver: real-time realized/unrealized PnL, fees, turnover; position nets by symbol/day.
+* DoD: reconciliation tests vs trade ledger.
+
+### Task 26 — Trader daemon bootstrap (`apps/traderd`)
+
+* Deliver: asyncio service wiring: WS→features→signal→risk→orders; graceful shutdown; config-driven universe.
+* DoD: end-to-end dry-run on mock ticks.
+
+### Task 27 — Scheduler & square-off
+
+* Deliver: trade window gate, 15:10 no-new-entries, 15:18 force-flat; emergency limit-as-market flattener.
+* DoD: synthetic clock tests.
+
+### Task 28 — Persistence & audit
+
+* Deliver: order/fill/position writes, idempotent postback reconciliation, immutable audit log.
+* DoD: duplicate postbacks don’t double-count.
+
+### Task 29 — Backtester skeleton
+
+* Deliver: event-driven sim, order book model (spread/queue), latency/slippage model; CSV/Parquet I/O.
+* DoD: reproducible results with seed.
+
+### Task 30 — Walk-forward & reports
+
+* Deliver: purged TS-CV, embargo, monthly/quarterly refit; HTML/CSV reports (Sharpe, expectancy, MDD, turnover, cost).
+* DoD: sample run artifacts archived to S3.
+
+### Task 31 — Minimal demo model
+
+* Deliver: LightGBM baseline trained on sample OHLCV; ONNX export + calibration; registry entry.
+* DoD: `p>0.58` threshold produces trades in sim.
+
+### Task 32 — Observability (metrics/logs)
+
+* Deliver: Prometheus metrics (latency, tick lag, rejects, PnL); structured logs (Loki-compatible), correlation IDs.
+* DoD: `/metrics` emits counters/gauges.
+
+### Task 33 — Tracing
+
+* Deliver: OpenTelemetry spans across API/traderd/adapter; traceparent propagation.
+* DoD: traces visible in local collector.
+
+### Task 34 — Alerts & comms
+
+* Deliver: Slack & Telegram notifiers; events: `risk.halt`, `ws.stale>1.5s`, `reject.rate>1%`, `squareoff.warn`, `position.open@15:18`.
+* DoD: integration tests with fake webhooks.
+
+### Task 35 — Dashboard scaffold (`apps/dashboard`)
+
+* Deliver: Next.js + Tailwind + shadcn/ui, auth, dark mode; layout shell.
+* DoD: CI build + smoke test.
+
+### Task 36 — Dashboard: Overview page
+
+* Deliver: live PnL, exposure, open positions, order queue budgets, alerts stream.
+* DoD: e2e test (Playwright) validates widgets.
+
+### Task 37 — Dashboard: Orders/Positions
+
+* Deliver: searchable tables, detail drawers, cancel buttons (guarded), CSV export.
+* DoD: API contract tests.
+
+### Task 38 — Dashboard: Signals & Risk
+
+* Deliver: last N signals, calibration histogram; risk toggles (halt/resume, kill-switch).
+* DoD: privilege checks enforced.
+
+### Task 39 — Dashboard: Config & Backtests
+
+* Deliver: config editor with diff/versioning; backtest run list + report viewer.
+* DoD: editing logs audit-recorded.
+
+### Task 40 — Notifications & EOD report
+
+* Deliver: daily PnL email/markdown artifact; digest of trades, rejects, costs; archived to S3.
+* DoD: EOD cron generates artifact.
+
+### Task 41 — API hardening
+
+* Deliver: idempotency keys, input validation, rate limiting, pagination, `X-Request-ID`.
+* DoD: fuzz tests; 429 behavior verified.
+
+### Task 42 — Secrets & config ops
+
+* Deliver: AWS Secrets Manager integration; local `.secrets/` fallback; env var mapping.
+* DoD: secret rotation playbook.
+
+### Task 43 — Docker & compose
+
+* Deliver: production Dockerfiles (slim images), multi-stage builds; `docker-compose` for dev.
+* DoD: `compose up` runs full stack locally.
+
+### Task 44 — CI quality gates
+
+* Deliver: coverage ≥80% (pytest/jest), `bandit`/`trivy` scans, license audit, SBOM export.
+* DoD: PR must pass all gates to merge.
+
+### Task 45 — CD pipelines
+
+* Deliver: build & push images on tag; deploy dashboard/API to AWS (staging); manual promote to prod; signed images.
+* DoD: tag → staged deployment success.
+
+### Task 46 — Live-ops runbook & ADRs
+
+* Deliver: `/docs` runbooks (start/stop, failover, square-off), ADRs for key decisions.
+* DoD: docs indexed for RAG.
+
+### Task 47 — RAG for repo copilot
+
+* Deliver: embeddings job (pgvector), ingestion of docs/ADRs, minimal Q\&A endpoint.
+* DoD: eval set answers cite files.
+
+### Task 48 — End-to-end dry-run (mock)
+
+* Deliver: scripted scenario from ticks→signals→orders→TP/SL→PnL→EOD report on mock adapter.
+* DoD: green run artifact attached to CI.
+
+### Task 49 — Limited live smoke (opt-in)
+
+* Deliver: feature flag + micro-capital live test for 1 symbol; flatten by 15:18; logs captured.
+* DoD: checklists signed; zero open positions post-close.
+
+### Task 50 — 0.1.0 release & change log
+
+* Deliver: `CHANGELOG.md`, GitHub Release notes, version tags.
+* DoD: immutable build artifacts; docs updated.
+
+---
