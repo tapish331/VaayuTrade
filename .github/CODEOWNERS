@@ -1,0 +1,10 @@
+# Default owner
+* @tapish331
+
+# Path owners (explicit for clarity)
+/apps/api/         @tapish331
+/apps/traderd/     @tapish331
+/apps/dashboard/   @tapish331
+/packages/**       @tapish331
+/infra/**          @tapish331
+/docs/**           @tapish331

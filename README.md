@@ -48,3 +48,10 @@ You should see **OK**. Toolchains, CI, and packages are added in later tasks.
 > Full discovery and state machine plans are tracked in `/docs` and issues/PRs.
 
 ````
+
+## Security & governance
+
+- Dependabot keeps Actions, npm, poetry, terraform, and docker dependencies updated.
+- CodeQL scans JavaScript/TypeScript and Python on pull requests.
+- Secret scanning and push protection are enabled (via bootstrap script).
+- `main` is protected: requires 1 approving review from CODEOWNERS and passing status checks.
