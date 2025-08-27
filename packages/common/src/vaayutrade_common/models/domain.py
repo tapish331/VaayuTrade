@@ -1,10 +1,10 @@
 from __future__ import annotations
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Any, Dict, List, Literal, Mapping, Optional
+from typing import Annotated, Any, Dict, List, Literal, Mapping, Optional
 from uuid import UUID, uuid4
 
-from pydantic import Field, constr, model_validator
+from pydantic import Field, StringConstraints, model_validator
 from .base import VM
 
 # --- Core domain models (aligned with Discovery §3) ---
@@ -20,7 +20,7 @@ class Account(VM):
 
 class Instrument(VM):
     token: int
-    symbol: constr(strip_whitespace=True, min_length=1)
+    symbol: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
     exchange: Literal["NSE"] = "NSE"
     tick_size: float
     lot_size: int = 1
