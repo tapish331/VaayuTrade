@@ -1,0 +1,63 @@
+name: Apply Branch Protection (main)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  administration: write
+
+jobs:
+  protect-main:
+    runs-on: ubuntu-latest
+    env:
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+      BRANCH: main
+      TOKEN: ${{ secrets.ADMIN_TOKEN || secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Determine checks (contexts)
+        id: ctx
+        run: |
+          # Required checks (names must match job/check run names)
+          # Adjust if names change in CI:
+          echo "checks=$(jq -nc \
+            --argjson arr '[
+              {"context":"CI / python / ubuntu-latest"},
+              {"context":"CI / node / ubuntu-latest"},
+              {"context":"CodeQL / language:python"},
+              {"context":"CodeQL / language:javascript"},
+              {"context":"gitleaks"},
+              {"context":"dependency-review"}
+            ]' \
+            '$arr')" >> "$GITHUB_OUTPUT"
+
+      - name: Apply branch protection (REST)
+        run: |
+          set -euo pipefail
+          url="https://api.github.com/repos/${OWNER}/${REPO}/branches/${BRANCH}/protection"
+          payload=$(jq -n \
+            --argjson checks '${{ steps.ctx.outputs.checks }}' \
+            '{
+              required_status_checks: {
+                strict: true,
+                checks: $checks
+              },
+              enforce_admins: true,
+              required_pull_request_reviews: {
+                required_approving_review_count: 1,
+                dismiss_stale_reviews: true,
+                require_code_owner_reviews: false
+              },
+              restrictions: null,
+              allow_deletions: false,
+              allow_force_pushes: false,
+              block_creations: false,
+              required_conversation_resolution: true
+            }')
+          curl -sS -X PUT "$url" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -d "$payload"

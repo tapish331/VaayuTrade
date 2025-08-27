@@ -1,0 +1,9 @@
+# Default owners
+*       @tapish331
+
+# Granular ownership (future)
+# /apps/api/             @tapish331
+# /apps/traderd/         @tapish331
+# /apps/dashboard/       @tapish331
+# /packages/strategy/    @tapish331
+# /packages/broker-kite/ @tapish331

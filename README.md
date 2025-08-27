@@ -31,6 +31,13 @@ docs/        # ADRs, runbooks
 
 You should see **OK**. Toolchains, CI, and packages are added in later tasks.
 
+### Security & governance (Task 05)
+- Dependabot: daily for npm/pnpm, Poetry, and GitHub Actions.
+- CodeQL: runs on PRs/push and weekly.
+- Secret scanning: CI gate via Gitleaks; dependency review on PRs.
+- Branch protection: run the “Apply Branch Protection (main)” workflow once after merging this PR.
+  - For user repos, `GITHUB_TOKEN` may suffice; otherwise add a repo secret `ADMIN_TOKEN` with a PAT that has `repo` and `admin:repo_hook` scopes.
+
 ### Toolchains (Task 03)
 - **Python**: Poetry manages a 3.11 environment and dev tools (ruff/black/mypy).
 - **Node**: pnpm manages JS tooling (eslint/prettier). Use `corepack enable` to activate pnpm.
