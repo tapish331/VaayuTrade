@@ -11,9 +11,12 @@
     "commitlint": "commitlint --from=HEAD~1 --to=HEAD",
     "commitlint:edit": "commitlint --edit",
     "lint": "eslint .",
-    "fmt": "prettier -w ."
+    "fmt": "prettier -w .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:js": "node --test js-tests/**/*.test.js"
   },
   "devDependencies": {
+    "@eslint/js": "^9.9.0",
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.5.0",
     "husky": "^9.1.0",
@@ -23,8 +26,7 @@
     "eslint-plugin-n": "^17.9.0",
     "eslint-plugin-promise": "^6.6.0",
     "prettier": "^3.3.3",
-    "@typescript-eslint/eslint-plugin": "^8.2.0",
-    "@typescript-eslint/parser": "^8.2.0",
+    "typescript-eslint": "^8.2.0",
     "typescript": "^5.5.4"
   }
 }
