@@ -1,12 +1,7 @@
-"""baseline schema
+"""Baseline Alembic migration: enums, tables, indexes, triggers."""
 
-Revision ID: 0001_baseline_schema
-Revises: 
-Create Date: 2024-08-28
-"""
-
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
