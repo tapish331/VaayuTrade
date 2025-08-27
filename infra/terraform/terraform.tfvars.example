@@ -1,0 +1,19 @@
+project      = "vaayutrade"
+environment  = "dev"
+region       = "ap-south-1"
+name_suffix  = "tapish"   # <-- change to your initials or a unique token
+
+# VPC
+
+vpc_cidr             = "10.20.0.0/16"
+az_count             = 2
+public_subnet_cidrs  = ["10.20.0.0/24", "10.20.1.0/24"]
+private_subnet_cidrs = ["10.20.10.0/24", "10.20.11.0/24"]
+enable_nat_gateway   = false
+
+# S3
+
+s3_kms_key_arn              = null
+archives_transition_days    = 30
+archives_deep_archive_days  = 180
+archives_expiration_days    = 1095
