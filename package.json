@@ -11,7 +11,9 @@
     "commitlint": "commitlint --from=HEAD~1 --to=HEAD",
     "commitlint:edit": "commitlint --edit",
     "lint": "eslint .",
-    "fmt": "prettier -w ."
+    "fmt": "prettier -w .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:js": "node --test js-tests/**/*.test.js"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",
