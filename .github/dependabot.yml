@@ -1,0 +1,39 @@
+---
+version: 2
+updates:
+  # Keep Actions fresh
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule: {interval: "daily"}
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+
+  # Node (dashboard) — bump package.json versions with npm
+  - package-ecosystem: "npm"
+    directory: "/apps/dashboard"
+    schedule: {interval: "daily"}
+    versioning-strategy: increase
+    open-pull-requests-limit: 10
+
+  # Python (poetry-managed apps and packages)
+  - package-ecosystem: "poetry"
+    directory: "/apps/api"
+    schedule: {interval: "daily"}
+  - package-ecosystem: "poetry"
+    directory: "/apps/traderd"
+    schedule: {interval: "daily"}
+  - package-ecosystem: "poetry"
+    directory: "/packages/common"
+    schedule: {interval: "daily"}
+
+  # Terraform (infra)
+  - package-ecosystem: "terraform"
+    directory: "/infra/terraform"
+    schedule: {interval: "daily"}
+
+  # Dockerfiles at repo root (if present)
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule: {interval: "daily"}
