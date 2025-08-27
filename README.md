@@ -31,6 +31,14 @@ docs/        # ADRs, runbooks
 
 You should see **OK**. Toolchains, CI, and packages are added in later tasks.
 
+### Toolchains (Task 03)
+- **Python**: Poetry manages a 3.11 environment and dev tools (ruff/black/mypy).
+- **Node**: pnpm manages JS tooling (eslint/prettier). Use `corepack enable` to activate pnpm.
+- One-shot setup:
+  ```bash
+  make bootstrap
+  ```
+
 ## Notes
 
 * Single user, NSE cash intraday (MIS) only.

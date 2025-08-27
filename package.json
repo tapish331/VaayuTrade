@@ -2,20 +2,29 @@
   "name": "vaayutrade-repo-tooling",
   "private": true,
   "version": "0.0.0",
-  "description": "Repo-wide tooling for VaayuTrade (conventional commits + husky hooks).",
+  "description": "Repo-wide tooling for VaayuTrade",
   "license": "MIT",
+  "packageManager": "pnpm@9.9.0",
+  "engines": { "node": ">=18" },
   "scripts": {
     "prepare": "husky install",
     "commitlint": "commitlint --from=HEAD~1 --to=HEAD",
     "commitlint:edit": "commitlint --edit",
-    "postinstall": "node -e \"console.log('Tooling installed. Run: npx husky install')\""
+    "lint": "eslint .",
+    "fmt": "prettier -w ."
   },
   "devDependencies": {
     "@commitlint/cli": "^19.5.0",
     "@commitlint/config-conventional": "^19.5.0",
-    "husky": "^9.1.0"
-  },
-  "engines": {
-    "node": ">=18"
+    "husky": "^9.1.0",
+    "eslint": "^9.9.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-n": "^17.9.0",
+    "eslint-plugin-promise": "^6.6.0",
+    "prettier": "^3.3.3",
+    "@typescript-eslint/eslint-plugin": "^8.2.0",
+    "@typescript-eslint/parser": "^8.2.0",
+    "typescript": "^5.5.4"
   }
 }

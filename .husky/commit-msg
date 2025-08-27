@@ -1,4 +1,4 @@
 #!/usr/bin/env sh
 . "$(dirname "$0")/_/husky.sh"
 
-npx --no-install commitlint --edit "$1"
+command -v pnpm >/dev/null 2>&1 && pnpm commitlint --edit "$1" || npx --no-install commitlint --edit "$1"

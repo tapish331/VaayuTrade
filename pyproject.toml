@@ -1,0 +1,47 @@
+[tool.poetry]
+name = "vaayutrade"
+version = "0.0.0"
+description = "Repo-level tooling & shared configs for VaayuTrade."
+authors = ["Tapish <tapish331@users.noreply.github.com>"]
+license = "MIT"
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.12"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.5.7"
+black = "^24.8.0"
+mypy = "^1.11.1"
+types-requests = "^2.32.0.20240712"
+pytest = "^8.3.2"
+
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = ["node_modules", ".venv", "venv", "dist", "build"]
+lint.select = ["E","F","I","UP","B","SIM","N","ARG"]
+lint.ignore = ["E501"]  # handled by Black
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+warn_unreachable = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+no_implicit_optional = true
+pretty = true
+show_error_codes = true
+exclude = '(node_modules|.venv|venv|dist|build)'
