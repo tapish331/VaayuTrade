@@ -1,9 +1,6 @@
 from datetime import datetime, timezone
 from uuid import uuid4
 
-import json
-import pytest
-
 from vaayutrade_common import (
     Account, Instrument, Universe, Signal, Order, OrderSide, OrderType, Execution,
     Position, RiskLimit, PnLMinute, ModelArtifact, FeatureSnapshot, Candle,
@@ -61,7 +58,7 @@ def test_featuresnapshot_roundtrip():
     assert roundtrip(obj) == obj
 
 def test_candle_roundtrip():
-    obj = Candle(symbol="TCS", ts=datetime.now(timezone.utc), o=100, h=110, l=95, c=105, v=100000, vwap=103.2)
+    obj = Candle(symbol="TCS", ts=datetime.now(timezone.utc), o=100, h=110, low=95, c=105, v=100000, vwap=103.2)
     assert roundtrip(obj) == obj
 
 def test_ticksnapshot_roundtrip():
