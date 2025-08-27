@@ -30,5 +30,7 @@ class AppError(BaseModel):
         return f"{self.code}: {self.message}"
 
     @classmethod
-    def from_exception(cls, exc: Exception, code: ErrorCode = ErrorCode.INTERNAL, retryable: bool = False) -> "AppError":
+    def from_exception(
+        cls, exc: Exception, code: ErrorCode = ErrorCode.INTERNAL, retryable: bool = False
+    ) -> "AppError":
         return cls(code=code, message=str(exc), retryable=retryable)

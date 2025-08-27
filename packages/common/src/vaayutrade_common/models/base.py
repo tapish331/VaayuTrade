@@ -1,10 +1,12 @@
 from __future__ import annotations
 from pydantic import BaseModel, ConfigDict
 
+
 class VM(BaseModel):
     """
     Base model with JSON-friendly settings.
     """
+
     model_config = ConfigDict(
         frozen=False,
         populate_by_name=True,

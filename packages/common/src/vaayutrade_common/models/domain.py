@@ -9,12 +9,14 @@ from .base import VM
 
 # --- Core domain models (aligned with Discovery §3) ---
 
+
 class Account(VM):
     id: UUID = Field(default_factory=uuid4)
     broker: Literal["zerodha"] = "zerodha"
     api_key_ref: str
     product: Literal["MIS"] = "MIS"
     timezone: str = "Asia/Kolkata"
+
 
 class Instrument(VM):
     token: int
@@ -24,20 +26,24 @@ class Instrument(VM):
     lot_size: int = 1
     is_tradable: bool = True
 
+
 class Universe(VM):
     id: UUID = Field(default_factory=uuid4)
     name: str
     symbols: List[str]
     ban_lists: List[str] = []
 
+
 class OrderSide(str, Enum):
     BUY = "BUY"
     SELL = "SELL"
+
 
 class OrderType(str, Enum):
     LIMIT = "LIMIT"
     MARKET = "MARKET"
     SL_LIMIT = "SL_LIMIT"  # Stop-loss limit
+
 
 class OrderStatus(str, Enum):
     PENDING = "PENDING"
@@ -46,6 +52,7 @@ class OrderStatus(str, Enum):
     FILLED = "FILLED"
     CANCELED = "CANCELED"
     REJECTED = "REJECTED"
+
 
 class Signal(VM):
     id: UUID = Field(default_factory=uuid4)
@@ -56,6 +63,7 @@ class Signal(VM):
     side: OrderSide
     conf: float = 0.5
     features_ref: Optional[str] = None
+
 
 class Order(VM):
     id: UUID = Field(default_factory=uuid4)
@@ -77,6 +85,7 @@ class Order(VM):
             raise ValueError("SL_LIMIT order requires both limit_price and trigger")
         return self
 
+
 class Execution(VM):
     id: UUID = Field(default_factory=uuid4)
     order_id: UUID
@@ -85,6 +94,7 @@ class Execution(VM):
     ts: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     liquidity_flag: Optional[Literal["M", "T"]] = None  # Maker/Taker
 
+
 class Position(VM):
     symbol: str
     net_qty: int
@@ -92,11 +102,13 @@ class Position(VM):
     mtm: float = 0.0
     last_updated: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+
 class RiskLimit(VM):
     max_daily_loss: float
     per_trade_risk: float
     max_positions: int
     max_spread_bps: float
+
 
 class PnLMinute(VM):
     ts: datetime
@@ -104,6 +116,7 @@ class PnLMinute(VM):
     unrealized: float
     fees: float
     turnover: float
+
 
 class ModelArtifact(VM):
     id: UUID = Field(default_factory=uuid4)
@@ -113,10 +126,12 @@ class ModelArtifact(VM):
     metrics: Mapping[str, float] = {}
     calib: Mapping[str, float] = {}
 
+
 class FeatureSnapshot(VM):
     ts: datetime
     symbol: str
     features: Mapping[str, float]
+
 
 class Candle(VM):
     symbol: str
@@ -128,9 +143,11 @@ class Candle(VM):
     v: float
     vwap: Optional[float] = None
 
+
 class PriceLevel(VM):
     price: float
     qty: int
+
 
 class TickSnapshot(VM):
     ts: datetime
@@ -140,16 +157,19 @@ class TickSnapshot(VM):
     last: Optional[float] = None
     volume: Optional[int] = None
 
+
 class AlertSeverity(str, Enum):
     INFO = "INFO"
     WARN = "WARN"
     ERROR = "ERROR"
+
 
 class AlertEvent(VM):
     ts: datetime
     type: str
     severity: AlertSeverity = AlertSeverity.INFO
     payload: Dict[str, Any] = {}
+
 
 class BacktestRun(VM):
     id: UUID = Field(default_factory=uuid4)
@@ -158,8 +178,10 @@ class BacktestRun(VM):
     trades: List[Mapping[str, Any]] = []
     seed: Optional[int] = None
 
+
 class ConfigBlob(VM):
     version: str
     data: Dict[str, Any]
+
 
 # --- end models ---

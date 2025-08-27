@@ -26,8 +26,10 @@ class Result(BaseModel, Generic[T]):
         if self.ok is False and self.error is None:
             raise ValueError("ok=False requires error")
 
+
 def Ok(value: T) -> Result[T]:
     return Result[T](ok=True, value=value)
+
 
 def Err(error: AppError) -> Result[None]:
     return Result[None](ok=False, error=error)
