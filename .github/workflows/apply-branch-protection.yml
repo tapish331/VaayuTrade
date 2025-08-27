@@ -2,8 +2,7 @@ name: Apply Branch Protection (main)
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ main ]
+  push: { branches: [ main ] }
 
 permissions:
   contents: read
@@ -17,22 +16,30 @@ jobs:
       REPO: ${{ github.event.repository.name }}
       BRANCH: main
       TOKEN: ${{ secrets.ADMIN_TOKEN || secrets.GITHUB_TOKEN }}
+      IS_PRIVATE: ${{ github.event.repository.private }}
     steps:
-      - name: Determine checks (contexts)
+      - name: Compute required checks JSON
         id: ctx
         run: |
-          # Required checks (names must match job/check run names)
-          # Adjust if names change in CI:
-          echo "checks=$(jq -nc \
-            --argjson arr '[
+          if [ "$IS_PRIVATE" = "true" ]; then
+            # Private: CodeQL & dependency-review skipped
+            checks='[
+              {"context":"CI / python / ubuntu-latest"},
+              {"context":"CI / node / ubuntu-latest"},
+              {"context":"gitleaks"}
+            ]'
+          else
+            # Public: include CodeQL and dependency review
+            checks='[
               {"context":"CI / python / ubuntu-latest"},
               {"context":"CI / node / ubuntu-latest"},
               {"context":"CodeQL / language:python"},
               {"context":"CodeQL / language:javascript"},
               {"context":"gitleaks"},
               {"context":"dependency-review"}
-            ]' \
-            '$arr')" >> "$GITHUB_OUTPUT"
+            ]'
+          fi
+          echo "checks=$checks" >> "$GITHUB_OUTPUT"
 
       - name: Apply branch protection (REST)
         run: |

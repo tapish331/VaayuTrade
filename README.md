@@ -38,6 +38,10 @@ You should see **OK**. Toolchains, CI, and packages are added in later tasks.
 - Branch protection: run the “Apply Branch Protection (main)” workflow once after merging this PR.
   - For user repos, `GITHUB_TOKEN` may suffice; otherwise add a repo secret `ADMIN_TOKEN` with a PAT that has `repo` and `admin:repo_hook` scopes.
 
+> **CodeQL on private repos:** If this repository is private, enable **Code scanning** in
+> *Settings → Security & analysis* or make the repo public. Until then, the CodeQL workflow
+> is skipped by design; other security checks (e.g., Gitleaks) still run on PRs.
+
 ### Toolchains (Task 03)
 - **Python**: Poetry manages a 3.11 environment and dev tools (ruff/black/mypy).
 - **Node**: pnpm manages JS tooling (eslint/prettier). Use `corepack enable` to activate pnpm.
