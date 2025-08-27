@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "vaayutrade-common"
+version = "0.1.0"
+description = "Shared schemas, errors, and result types for VaayuTrade."
+authors = ["Tapish <devnull@example.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{ include = "vaayutrade_common", from = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+pydantic = "^2.7.0"
+typing-extensions = "^4.10.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.2.0"
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["packages/common/tests"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.black]
+line-length = 100
+
+[build-system]
+requires = ["poetry-core>=1.8.0"]
+build-backend = "poetry.core.masonry.api"
