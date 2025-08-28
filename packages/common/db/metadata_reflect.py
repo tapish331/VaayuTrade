@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable, Optional, Union
+from typing import Any, Iterable, Optional, Union
 
 from sqlalchemy import MetaData
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine
@@ -29,7 +29,7 @@ async def reflect_all(
     md = MetaData()
 
     async def _do_reflect(conn: AsyncConnection) -> None:
-        def _reflect(sync_conn):
+        def _reflect(sync_conn: Any) -> None:
             md.reflect(bind=sync_conn, only=list(only) if only else TABLES)
 
         await conn.run_sync(_reflect)

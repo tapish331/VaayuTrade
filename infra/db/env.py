@@ -12,11 +12,6 @@ target_metadata = None
 
 
 def _get_sqlalchemy_url() -> str:
-    """
-    Resolve the SQLAlchemy URL for Alembic runs.
-    Prefer alembic.ini's [alembic] sqlalchemy.url; fall back to $DATABASE_URL.
-    Ensure the result uses a synchronous driver (psycopg).
-    """
     url: str | None = config.get_main_option("sqlalchemy.url")
     if url and url.startswith("${") and url.endswith("}"):
         url = os.getenv(url[2:-1])
@@ -42,8 +37,8 @@ def run_migrations_offline() -> None:
 def run_migrations_online() -> None:
     url = _get_sqlalchemy_url()
     connectable = engine_from_config(
-        {"sqlalchemy.url": url},
-        prefix="sqlalchemy.",
+        {"url": url},
+        prefix="",
         poolclass=pool.NullPool,
     )
     with connectable.connect() as connection:

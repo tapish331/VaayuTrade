@@ -57,5 +57,6 @@ files = ["packages/common/db", "tests/db"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
-asyncio_mode = "auto"
+addopts = "-q"
+asyncio_mode = "strict"
 testpaths = ["tests"]

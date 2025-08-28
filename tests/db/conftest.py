@@ -1,52 +1,51 @@
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+import pytest_asyncio
+from alembic import command as alembic_command
+from alembic.config import Config as AlembicConfig
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
-import pytest
-from alembic import command
-from alembic.config import Config
-from sqlalchemy import event
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
+from packages.common.db.session import (
+    create_engine,
+    get_database_url,
+    make_session_for_connection,
+)
 
-from packages.common.db.session import create_engine
-
-
-@pytest.fixture(scope="session")
-def anyio_backend() -> str:
-    """Ensure a single backend for pytest-asyncio auto mode."""
-    return "asyncio"
+pytest_plugins = ("pytest_asyncio",)
 
 
-@pytest.fixture(scope="session")
-async def engine() -> AsyncIterator[AsyncEngine]:
-    """Create engine and apply migrations for the test session."""
-    eng = create_engine()
-    cfg = Config("infra/db/alembic.ini")
-    command.upgrade(cfg, "head")
+def _alembic_upgrade_head_sync() -> None:
+    cfg = AlembicConfig("infra/db/alembic.ini")
+    cfg.set_main_option("sqlalchemy.url", get_database_url())
+    alembic_command.upgrade(cfg, "head")
+
+
+@pytest_asyncio.fixture(scope="session", autouse=True)
+async def _migrate_db() -> None:
+    import anyio
+
+    await anyio.to_thread.run_sync(_alembic_upgrade_head_sync)
+
+
+@pytest_asyncio.fixture(scope="session")
+async def engine() -> AsyncEngine:
+    eng = create_engine(echo=False)
     try:
+        async with eng.connect() as conn:
+            await conn.execute(text("SELECT 1"))
         yield eng
     finally:
-        command.downgrade(cfg, "base")
+        await eng.dispose()
 
 
-@pytest.fixture()
-async def session(engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
-    """Provide a transactional AsyncSession per test."""
-    sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
+@pytest_asyncio.fixture
+async def db_session(engine: AsyncEngine) -> AsyncSession:
     async with engine.connect() as conn:
         trans = await conn.begin()
-        async with sessionmaker(bind=conn) as s:
-            nested = await s.begin_nested()
-
-            @event.listens_for(s.sync_session, "after_transaction_end")
-            def _restart_savepoint(sess, transaction) -> None:  # pragma: no cover
-                if transaction.nested and not transaction._parent.nested:
-                    from contextlib import suppress
-
-                    with suppress(Exception):
-                        sess.begin_nested()
-
-            yield s
-
-            await nested.rollback()
-        await trans.rollback()
+        session = make_session_for_connection(conn)
+        try:
+            yield session
+        finally:
+            await session.close()
+            await trans.rollback()

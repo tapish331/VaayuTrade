@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from packages.common.db.metadata_reflect import reflect_all
 from packages.common.db.repositories.account import AccountRepository
@@ -11,10 +11,10 @@ from packages.common.db.repositories.order import OrderRepository
 
 
 @pytest.mark.asyncio
-async def test_account_crud(session: AsyncSession) -> None:
-    md = await reflect_all(session.bind)
+async def test_account_crud(db_session: AsyncSession, engine: AsyncEngine) -> None:
+    md = await reflect_all(engine)
     account = md.tables["account"]
-    repo = AccountRepository(session, account)
+    repo = AccountRepository(db_session, account)
     created = await repo.create(
         {
             "broker": "ZERODHA",
@@ -31,10 +31,10 @@ async def test_account_crud(session: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_instrument_and_order_helpers(session: AsyncSession) -> None:
-    md = await reflect_all(session.bind)
-    irepo = InstrumentRepository(session, md.tables["instrument"])
-    orepo = OrderRepository(session, md.tables["order"])
+async def test_instrument_and_order_helpers(db_session: AsyncSession, engine: AsyncEngine) -> None:
+    md = await reflect_all(engine)
+    irepo = InstrumentRepository(db_session, md.tables["instrument"])
+    orepo = OrderRepository(db_session, md.tables["order"])
 
     sym = await irepo.create(
         {
@@ -48,7 +48,7 @@ async def test_instrument_and_order_helpers(session: AsyncSession) -> None:
     got = await irepo.get_by_symbol("INFY")
     assert got and got["id"] == sym["id"]
 
-    acc = await AccountRepository(session, md.tables["account"]).create(
+    acc = await AccountRepository(db_session, md.tables["account"]).create(
         {"broker": "ZERODHA", "product": "MIS", "api_key_ref": "k"}
     )
     ord1 = await orepo.create(
@@ -68,9 +68,9 @@ async def test_instrument_and_order_helpers(session: AsyncSession) -> None:
 
 
 @pytest.mark.asyncio
-async def test_config_active(session: AsyncSession) -> None:
-    md = await reflect_all(session.bind)
-    crepo = ConfigRepository(session, md.tables["config"])
+async def test_config_active(db_session: AsyncSession, engine: AsyncEngine) -> None:
+    md = await reflect_all(engine)
+    crepo = ConfigRepository(db_session, md.tables["config"])
     await crepo.create({"key": "trading", "version": 1, "yaml": "a: 1", "is_active": True})
     active = await crepo.get_active("trading")
     assert active and active["version"] == 1
