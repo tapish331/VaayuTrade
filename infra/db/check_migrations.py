@@ -1,9 +1,11 @@
+from __future__ import annotations
+
 import os
 import subprocess
 
 import psycopg
 
-TABLES = {
+REQUIRED_TABLES: set[str] = {
     "account",
     "instrument",
     "signal",
@@ -30,7 +32,7 @@ def main() -> None:
         cur = conn.cursor()
         cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public'")
         existing = {row[0] for row in cur.fetchall()}
-        missing = TABLES - existing
+        missing = REQUIRED_TABLES - existing
         assert not missing, f"missing tables: {missing}"
 
         cur.execute(
@@ -68,7 +70,9 @@ def main() -> None:
         cur.execute(
             "INSERT INTO audit_event(actor_type, action, entity_type, entity_id) VALUES('system','TEST','x','1') RETURNING id, hash"
         )
-        audit_id, hash_val = cur.fetchone()
+        row = cur.fetchone()
+        assert row is not None
+        audit_id, hash_val = row
         assert hash_val is not None
         try:
             cur.execute("UPDATE audit_event SET reason='oops' WHERE id=%s", (audit_id,))
