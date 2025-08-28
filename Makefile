@@ -35,9 +35,9 @@ fmt: py.fmt js.fmt
 lint: py.lint js.lint
 
 py.lint:
-	@poetry run ruff check .
-	@poetry run black --check .
-	@poetry run mypy . || true
+        @poetry run ruff check .
+        @poetry run black --check .
+        @poetry run mypy . || true
 
 js.lint:
 	@ESLINT_USE_FLAT_CONFIG=false pnpm eslint .
@@ -47,8 +47,17 @@ py.fmt:
 	@poetry run black .
 
 js.fmt:
-	@pnpm prettier -w .
+        @pnpm prettier -w .
 
 check:
-	@echo "Running repo checks..."
-	@make lint
+        @echo "Running repo checks..."
+        @make lint
+
+db.up:
+        @alembic -c infra/db/alembic.ini upgrade head
+
+db.down:
+        @alembic -c infra/db/alembic.ini downgrade base
+
+db.revise:
+        @alembic -c infra/db/alembic.ini revision -m "$(m)"
