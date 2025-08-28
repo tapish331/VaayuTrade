@@ -54,11 +54,16 @@ def main() -> None:
 
         cur.execute("SELECT indexname, indexdef FROM pg_indexes WHERE tablename='order'")
         idx = {row[0]: row[1] for row in cur.fetchall()}
-        assert "uq_order__broker_order_id" in idx and "broker_order_id IS NOT NULL" in idx["uq_order__broker_order_id"]
+        assert (
+            "uq_order__broker_order_id" in idx
+            and "broker_order_id IS NOT NULL" in idx["uq_order__broker_order_id"]
+        )
 
         cur.execute("SELECT indexname, indexdef FROM pg_indexes WHERE tablename='config'")
         idx_cfg = {row[0]: row[1] for row in cur.fetchall()}
-        assert "uq_config__key_active" in idx_cfg and "is_active" in idx_cfg["uq_config__key_active"]
+        assert (
+            "uq_config__key_active" in idx_cfg and "is_active" in idx_cfg["uq_config__key_active"]
+        )
 
         cur.execute(
             "INSERT INTO audit_event(actor_type, action, entity_type, entity_id) VALUES('system','TEST','x','1') RETURNING id, hash"

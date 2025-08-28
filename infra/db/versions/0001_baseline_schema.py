@@ -16,29 +16,57 @@ def upgrade() -> None:
     op.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
 
     # enums
-    broker_enum = postgresql.ENUM('ZERODHA', name='broker_enum', create_type=False)
-    exchange_enum = postgresql.ENUM('NSE', name='exchange_enum', create_type=False)
-    product_enum = postgresql.ENUM('MIS', name='product_enum', create_type=False)
-    order_side_enum = postgresql.ENUM('BUY', 'SELL', name='order_side_enum', create_type=False)
-    order_type_enum = postgresql.ENUM('LIMIT', 'SL_LIMIT', 'MARKET', name='order_type_enum', create_type=False)
+    broker_enum = postgresql.ENUM("ZERODHA", name="broker_enum", create_type=False)
+    exchange_enum = postgresql.ENUM("NSE", name="exchange_enum", create_type=False)
+    product_enum = postgresql.ENUM("MIS", name="product_enum", create_type=False)
+    order_side_enum = postgresql.ENUM("BUY", "SELL", name="order_side_enum", create_type=False)
+    order_type_enum = postgresql.ENUM(
+        "LIMIT", "SL_LIMIT", "MARKET", name="order_type_enum", create_type=False
+    )
     order_status_enum = postgresql.ENUM(
-        'NEW', 'PENDING', 'OPEN', 'PARTIALLY_FILLED', 'FILLED', 'CANCELLED', 'REJECTED', 'EXPIRED', 'TRIGGER_PENDING',
-        name='order_status_enum',
+        "NEW",
+        "PENDING",
+        "OPEN",
+        "PARTIALLY_FILLED",
+        "FILLED",
+        "CANCELLED",
+        "REJECTED",
+        "EXPIRED",
+        "TRIGGER_PENDING",
+        name="order_status_enum",
         create_type=False,
     )
-    signal_side_enum = postgresql.ENUM('LONG', 'SHORT', name='signal_side_enum', create_type=False)
-    liquidity_flag_enum = postgresql.ENUM('PASSIVE', 'AGGRESSIVE', 'UNKNOWN', name='liquidity_flag_enum', create_type=False)
-    alert_severity_enum = postgresql.ENUM('INFO', 'WARN', 'CRITICAL', name='alert_severity_enum', create_type=False)
+    signal_side_enum = postgresql.ENUM("LONG", "SHORT", name="signal_side_enum", create_type=False)
+    liquidity_flag_enum = postgresql.ENUM(
+        "PASSIVE", "AGGRESSIVE", "UNKNOWN", name="liquidity_flag_enum", create_type=False
+    )
+    alert_severity_enum = postgresql.ENUM(
+        "INFO", "WARN", "CRITICAL", name="alert_severity_enum", create_type=False
+    )
 
-    enums = [broker_enum, exchange_enum, product_enum, order_side_enum, order_type_enum,
-             order_status_enum, signal_side_enum, liquidity_flag_enum, alert_severity_enum]
+    enums = [
+        broker_enum,
+        exchange_enum,
+        product_enum,
+        order_side_enum,
+        order_type_enum,
+        order_status_enum,
+        signal_side_enum,
+        liquidity_flag_enum,
+        alert_severity_enum,
+    ]
     for enum in enums:
         enum.create(op.get_bind(), checkfirst=True)
 
     # account
     op.create_table(
         "account",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
         sa.Column("created_at", sa.TIMESTAMP(timezone=True), server_default=sa.text("now()")),
         sa.Column("broker", broker_enum, nullable=False),
         sa.Column(
@@ -78,7 +106,12 @@ def upgrade() -> None:
     # model_artifact
     op.create_table(
         "model_artifact",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
         sa.Column("name", sa.Text(), nullable=False, server_default=sa.text("'primary'")),
         sa.Column("version", sa.Text(), nullable=False),
         sa.Column("path", sa.Text(), nullable=False),
@@ -86,7 +119,12 @@ def upgrade() -> None:
         sa.Column("metrics", postgresql.JSONB()),
         sa.Column("calib", postgresql.JSONB()),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.text("false")),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
         sa.UniqueConstraint("name", "version", name="uq_model_artifact__name_version"),
     )
     op.create_index("ix_model_artifact__is_active", "model_artifact", ["is_active"])
@@ -94,7 +132,12 @@ def upgrade() -> None:
     # config
     op.create_table(
         "config",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
         sa.Column("key", sa.Text(), nullable=False, server_default=sa.text("'trading'")),
         sa.Column("version", sa.Integer(), nullable=False),
         sa.Column("yaml", sa.Text(), nullable=False),
@@ -107,7 +150,12 @@ def upgrade() -> None:
             sa.ForeignKey("account.id", name="fk_config__account"),
             nullable=True,
         ),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
         sa.UniqueConstraint("key", "version", name="uq_config__key_version"),
     )
     op.create_index("ix_config__created_at_desc", "config", [sa.text("created_at DESC")])
@@ -122,10 +170,18 @@ def upgrade() -> None:
     # signal
     op.create_table(
         "signal",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
         sa.Column("ts", sa.TIMESTAMP(timezone=True), nullable=False),
         sa.Column(
-            "instrument_id", sa.BigInteger(), sa.ForeignKey("instrument.id", name="fk_signal__instrument"), nullable=False
+            "instrument_id",
+            sa.BigInteger(),
+            sa.ForeignKey("instrument.id", name="fk_signal__instrument"),
+            nullable=False,
         ),
         sa.Column("side", signal_side_enum, nullable=False),
         sa.Column("horizon_seconds", sa.SmallInteger(), nullable=False),
@@ -150,7 +206,12 @@ def upgrade() -> None:
     # order
     op.create_table(
         "order",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
         sa.Column(
             "account_id",
             postgresql.UUID(as_uuid=True),
@@ -158,7 +219,10 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column(
-            "instrument_id", sa.BigInteger(), sa.ForeignKey("instrument.id", name="fk_order__instrument"), nullable=False
+            "instrument_id",
+            sa.BigInteger(),
+            sa.ForeignKey("instrument.id", name="fk_order__instrument"),
+            nullable=False,
         ),
         sa.Column(
             "signal_id",
@@ -190,8 +254,18 @@ def upgrade() -> None:
             server_default=sa.text("'NEW'"),
         ),
         sa.Column("rejection_reason", sa.Text()),
-        sa.Column("placed_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("updated_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "placed_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.Column(
+            "updated_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
         sa.Column("good_till", sa.TIMESTAMP(timezone=True)),
         sa.CheckConstraint("qty > 0", name="ck_order__qty_gt_zero"),
         sa.UniqueConstraint("client_id", name="uq_order__client_id"),
@@ -206,7 +280,9 @@ def upgrade() -> None:
         "ix_order__open",
         "order",
         ["instrument_id"],
-        postgresql_where=sa.text("status IN ('OPEN','PENDING','TRIGGER_PENDING','PARTIALLY_FILLED')"),
+        postgresql_where=sa.text(
+            "status IN ('OPEN','PENDING','TRIGGER_PENDING','PARTIALLY_FILLED')"
+        ),
     )
     op.create_index(
         "uq_order__broker_order_id",
@@ -263,8 +339,15 @@ def upgrade() -> None:
         sa.Column("avg_price", sa.Numeric(18, 6), nullable=False, server_default=sa.text("0")),
         sa.Column("realized_pnl", sa.Numeric(18, 6), nullable=False, server_default=sa.text("0")),
         sa.Column("unrealized_pnl", sa.Numeric(18, 6), nullable=False, server_default=sa.text("0")),
-        sa.Column("last_updated", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.UniqueConstraint("trading_day", "instrument_id", name="uq_position__trading_day_instrument_id"),
+        sa.Column(
+            "last_updated",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
+        sa.UniqueConstraint(
+            "trading_day", "instrument_id", name="uq_position__trading_day_instrument_id"
+        ),
     )
     op.create_index("ix_position__instrument_id", "position", ["instrument_id"])
     op.create_index("ix_position__trading_day", "position", ["trading_day"])
@@ -293,11 +376,11 @@ def upgrade() -> None:
     op.create_table(
         "alert",
         sa.Column("id", sa.BigInteger(), primary_key=True, autoincrement=True),
-        sa.Column("ts", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("now()")),
-        sa.Column("type", sa.Text(), nullable=False),
         sa.Column(
-            "severity", alert_severity_enum, nullable=False
+            "ts", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("now()")
         ),
+        sa.Column("type", sa.Text(), nullable=False),
+        sa.Column("severity", alert_severity_enum, nullable=False),
         sa.Column("message", sa.Text(), nullable=False),
         sa.Column("payload", postgresql.JSONB()),
         sa.Column("dedup_key", sa.Text()),
@@ -323,8 +406,18 @@ def upgrade() -> None:
     # backtest_run
     op.create_table(
         "backtest_run",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
-        sa.Column("created_at", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "id",
+            postgresql.UUID(as_uuid=True),
+            primary_key=True,
+            server_default=sa.text("gen_random_uuid()"),
+        ),
+        sa.Column(
+            "created_at",
+            sa.TIMESTAMP(timezone=True),
+            nullable=False,
+            server_default=sa.text("now()"),
+        ),
         sa.Column(
             "config_id",
             postgresql.UUID(as_uuid=True),
@@ -337,7 +430,9 @@ def upgrade() -> None:
         sa.Column("metrics", postgresql.JSONB(), nullable=False),
         sa.Column("trades", postgresql.JSONB()),
     )
-    op.create_index("ix_backtest_run__created_at_desc", "backtest_run", [sa.text("created_at DESC")])
+    op.create_index(
+        "ix_backtest_run__created_at_desc", "backtest_run", [sa.text("created_at DESC")]
+    )
     op.create_index(
         "uq_backtest_run__tag",
         "backtest_run",
@@ -350,7 +445,9 @@ def upgrade() -> None:
     op.create_table(
         "audit_event",
         sa.Column("id", sa.BigInteger(), primary_key=True, autoincrement=True),
-        sa.Column("ts", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("now()")),
+        sa.Column(
+            "ts", sa.TIMESTAMP(timezone=True), nullable=False, server_default=sa.text("now()")
+        ),
         sa.Column("actor_type", sa.Text(), nullable=False),
         sa.Column(
             "actor_id",
