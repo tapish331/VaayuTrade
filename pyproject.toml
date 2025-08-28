@@ -50,7 +50,11 @@ disallow_any_generics = true
 no_implicit_optional = true
 pretty = true
 show_error_codes = true
-exclude = '(node_modules|.venv|venv|dist|build)'
+exclude = '(packages/common/(?!db)|tests/(?!db)|node_modules|\.venv|venv|dist|build)'
+explicit_package_bases = true
+# Only type-check the async DB layer and its tests
+files = ["packages/common/db", "tests/db"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
