@@ -1,52 +1,52 @@
 from __future__ import annotations
 
-import asyncio
-import os
 from collections.abc import AsyncIterator
 
 import pytest
-import pytest_asyncio
 from alembic import command
 from alembic.config import Config
-from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
+from sqlalchemy import event
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
-from packages.common.db.session import create_engine, create_session_factory
-
-
-def _to_sync_url(url: str) -> str:
-    if url.startswith("postgresql+asyncpg://"):
-        return "postgresql+psycopg://" + url.split("://", 1)[1]
-    return url
+from packages.common.db.session import create_engine
 
 
 @pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+def anyio_backend() -> str:
+    """Ensure a single backend for pytest-asyncio auto mode."""
+    return "asyncio"
 
 
-@pytest_asyncio.fixture()
+@pytest.fixture(scope="session")
 async def engine() -> AsyncIterator[AsyncEngine]:
+    """Create engine and apply migrations for the test session."""
     eng = create_engine()
-    alembic_cfg = Config("infra/db/alembic.ini")
-    alembic_cfg.set_main_option("sqlalchemy.url", _to_sync_url(os.environ["DATABASE_URL"]))
-    command.upgrade(alembic_cfg, "head")
+    cfg = Config("infra/db/alembic.ini")
+    command.upgrade(cfg, "head")
     try:
         yield eng
     finally:
-        command.downgrade(alembic_cfg, "base")
-        await eng.dispose()
+        command.downgrade(cfg, "base")
 
 
-@pytest_asyncio.fixture()
+@pytest.fixture()
 async def session(engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
-    session_factory = create_session_factory(engine)
-    async with session_factory() as s:
-        trans = await s.begin()
-        nested = await s.begin_nested()
-        try:
+    """Provide a transactional AsyncSession per test."""
+    sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
+    async with engine.connect() as conn:
+        trans = await conn.begin()
+        async with sessionmaker(bind=conn) as s:
+            nested = await s.begin_nested()
+
+            @event.listens_for(s.sync_session, "after_transaction_end")
+            def _restart_savepoint(sess, transaction) -> None:  # pragma: no cover
+                if transaction.nested and not transaction._parent.nested:
+                    from contextlib import suppress
+
+                    with suppress(Exception):
+                        sess.begin_nested()
+
             yield s
-        finally:
+
             await nested.rollback()
-            await trans.rollback()
+        await trans.rollback()
