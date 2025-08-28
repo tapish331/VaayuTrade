@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "vaayutrade"
 version = "0.0.0"
-description = "Repo-level tooling & shared configs for VaayuTrade."
+description = "VaayuTrade monorepo"
 authors = ["Tapish <tapish331@users.noreply.github.com>"]
 license = "MIT"
 readme = "README.md"
@@ -13,13 +13,16 @@ pydantic = "^2.7"
 sqlalchemy = "^2.0"
 alembic = "^1.13"
 psycopg = {version = "^3.1", extras = ["binary"]}
+asyncpg = "^0.30.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.5.7"
 black = "^24.8.0"
 mypy = "^1.11.1"
 types-requests = "^2.32.0.20240712"
-pytest = "^8.3.2"
+pytest = ">=7.4"
+pytest-asyncio = ">=0.23"
+anyio = "^4.4"
 
 [build-system]
 requires = ["poetry-core>=1.8.0"]
@@ -48,4 +51,16 @@ disallow_any_generics = true
 no_implicit_optional = true
 pretty = true
 show_error_codes = true
-exclude = '(node_modules|.venv|venv|dist|build)'
+exclude = '(packages/common/(?!db)|tests/(?!db)|node_modules|\.venv|venv|dist|build)'
+explicit_package_bases = true
+# Only type-check the async DB layer and its tests
+files = ["packages/common/db", "tests/db"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = "-q"
+asyncio_mode = "auto"
+testpaths = ["tests"]
+filterwarnings = [
+  "error::pytest.PytestDeprecationWarning",
+]

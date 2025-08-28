@@ -17,6 +17,24 @@ jobs:
   ci:
     name: ${{ matrix.lang }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: vaayutrade_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/vaayutrade_test
+      SQLALCHEMY_NULLPOOL_FOR_TESTS: "1"  # isolate asyncpg connections
     strategy:
       fail-fast: false
       matrix:
@@ -104,13 +122,30 @@ jobs:
         if: matrix.lang == 'python'
         run: |
           poetry env use 3.11
-          poetry install --no-interaction --no-root
+          poetry install --with dev --no-interaction --no-ansi
 
-      - name: Lint (ruff + black --check)
+      - name: psql readiness
+        if: matrix.lang == 'python'
+        run: |
+          python - <<'PY'
+          import socket, time
+          t = time.time() + 60
+          ok=False
+          while time.time() < t:
+              try:
+                  with socket.create_connection(("127.0.0.1",5432),timeout=1):
+                      ok=True
+                      break
+              except OSError:
+                  time.sleep(1)
+          assert ok, "Postgres port 5432 not reachable"
+          PY
+
+      - name: Lint (ruff)
         if: matrix.lang == 'python'
         run: |
           poetry run ruff check .
-          poetry run black --check .
+          poetry run ruff format --check .
 
       - name: Typecheck (mypy)
         if: matrix.lang == 'python'
