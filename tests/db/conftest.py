@@ -1,18 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
+
 import pytest_asyncio
 from alembic import command as alembic_command
 from alembic.config import Config as AlembicConfig
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
-from packages.common.db.session import (
-    create_engine,
-    get_database_url,
-    make_session_for_connection,
-)
-
-pytest_plugins = ("pytest_asyncio",)
+from packages.common.db.session import create_engine, create_sessionmaker, get_database_url
 
 
 def _alembic_upgrade_head_sync() -> None:
@@ -29,7 +25,7 @@ async def _migrate_db() -> None:
 
 
 @pytest_asyncio.fixture(scope="session")
-async def engine() -> AsyncEngine:
+async def engine() -> AsyncIterator[AsyncEngine]:
     eng = create_engine(echo=False)
     try:
         async with eng.connect() as conn:
@@ -40,12 +36,12 @@ async def engine() -> AsyncEngine:
 
 
 @pytest_asyncio.fixture
-async def db_session(engine: AsyncEngine) -> AsyncSession:
+async def db_session(engine: AsyncEngine) -> AsyncIterator[AsyncSession]:
+    sessionmaker = create_sessionmaker(engine)
     async with engine.connect() as conn:
         trans = await conn.begin()
-        session = make_session_for_connection(conn)
-        try:
-            yield session
-        finally:
-            await session.close()
-            await trans.rollback()
+        async with sessionmaker(bind=conn) as session:
+            try:
+                yield session
+            finally:
+                await trans.rollback()

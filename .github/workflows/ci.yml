@@ -34,6 +34,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@127.0.0.1:5432/vaayutrade_test
+      SQLALCHEMY_NULLPOOL_FOR_TESTS: "1"  # isolate asyncpg connections
     strategy:
       fail-fast: false
       matrix:

@@ -60,3 +60,6 @@ ignore_missing_imports = true
 addopts = "-q"
 asyncio_mode = "strict"
 testpaths = ["tests"]
+filterwarnings = [
+  "error::pytest.PytestDeprecationWarning",
+]
